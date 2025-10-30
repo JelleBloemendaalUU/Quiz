@@ -5,24 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verjaardagsquiz</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #fdf6e3; color: #333; padding: 20px; }
-  h1 { text-align: center; }
+  body { 
+    font-family: Arial, sans-serif; 
+    background: #fdf6e3; 
+    color: #333; 
+    padding: 20px; 
+  }
+  h1 { text-align: center; margin-bottom: 10px; }
+  #scoreboard {
+    text-align: center;
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    background: #fff8dc;
+    padding: 10px;
+    border-radius: 10px;
+    display: inline-block;
+  }
   .question { margin-bottom: 20px; }
-  button { margin-top: 10px; padding: 8px 16px; cursor: pointer; }
-  input[type="text"] { width: 100%; padding: 6px; }
+  button { 
+    margin-top: 10px; 
+    padding: 8px 16px; 
+    cursor: pointer; 
+    border: none;
+    background: #ffcc66;
+    border-radius: 8px;
+  }
+  button:hover { background: #ffb347; }
+  input[type="text"], input[type="number"] { 
+    width: 100%; 
+    padding: 6px; 
+    margin-top: 5px; 
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
   .hidden { display: none; }
 </style>
 </head>
 <body>
 
-<h1>Verjaardagsquiz!</h1>
+<h1>🎉 Verjaardagsquiz 🎉</h1>
+<div id="scoreboard">Score: <span id="score-display">0</span></div>
+
 <div id="quiz-container"></div>
 <div id="final-score" class="hidden">
-  <h2>Je score: <span id="score">0</span></h2>
+  <h2>Je eindscore: <span id="score">0</span></h2>
 </div>
 
 <script>
-// ==== JE VRAGEN HIER TOEVOEGEN ====
+// ==== VRAGEN HIER TOEVOEGEN ====
 const questions = [
   {
     type: "multiple", 
@@ -39,11 +69,12 @@ const questions = [
   {
     type: "open", 
     question: "Noem een van mijn favoriete hobby's",
-    pointsManual: true // Jij kent de punten toe
+    manualScoring: true // speler vult zelf punten in
   },
   {
     type: "final",
-    question: "Finale: hoeveel punten wil je inzetten?"
+    question: "Finale vraag: In welke maand ben ik jarig?",
+    answer: "Oktober"
   }
 ];
 
@@ -51,10 +82,17 @@ const questions = [
 let currentQuestion = 0;
 let score = 0;
 
+// ==== SCORE UPDATEN OP HET SCHERM ====
+function updateScore() {
+  document.getElementById('score-display').textContent = score;
+}
+
 // ==== FUNCTIE OM VRAGEN TE TONEN ====
 function showQuestion() {
   const container = document.getElementById('quiz-container');
   container.innerHTML = "";
+  updateScore();
+
   if (currentQuestion >= questions.length) {
     document.getElementById('final-score').classList.remove('hidden');
     document.getElementById('score').textContent = score;
@@ -66,6 +104,7 @@ function showQuestion() {
   div.className = "question";
   div.innerHTML = `<h3>${q.question}</h3>`;
 
+  // === MEERKEUZE ===
   if (q.type === "multiple") {
     q.options.forEach(option => {
       const btn = document.createElement('button');
@@ -77,8 +116,11 @@ function showQuestion() {
       };
       div.appendChild(btn);
     });
-  } else if (q.type === "ordering") {
-    div.innerHTML += `<p>Voer de juiste volgorde in, gescheiden door komma:</p>`;
+  }
+
+  // === ORDERING ===
+  else if (q.type === "ordering") {
+    div.innerHTML += `<p>Voer de juiste volgorde in, gescheiden door komma's:</p>`;
     const input = document.createElement('input');
     input.type = "text";
     div.appendChild(input);
@@ -86,12 +128,10 @@ function showQuestion() {
     btn.textContent = "Controleer";
     btn.onclick = () => {
       const userOrder = input.value.split(",").map(x => x.trim());
-      // punten per correct paar
       let pairsScore = 0;
       for (let i = 0; i < userOrder.length; i++) {
-        for (let j = i+1; j < userOrder.length; j++) {
-          const correctOrder = q.answer.indexOf(userOrder[i]) < q.answer.indexOf(userOrder[j]);
-          if (correctOrder) pairsScore++;
+        for (let j = i + 1; j < userOrder.length; j++) {
+          if (q.answer.indexOf(userOrder[i]) < q.answer.indexOf(userOrder[j])) pairsScore++;
         }
       }
       score += pairsScore;
@@ -99,7 +139,10 @@ function showQuestion() {
       showQuestion();
     };
     div.appendChild(btn);
-  } else if (q.type === "open") {
+  }
+
+  // === OPEN ===
+  else if (q.type === "open") {
     div.innerHTML += `<p>Typ je antwoord:</p>`;
     const input = document.createElement('input');
     input.type = "text";
@@ -107,27 +150,47 @@ function showQuestion() {
     const btn = document.createElement('button');
     btn.textContent = "Verstuur";
     btn.onclick = () => {
-      // Handmatige puntentoekenning
-      const punten = prompt("Hoeveel punten krijgt deze speler voor dit antwoord?");
-      score += parseInt(punten) || 0;
+      const antwoord = input.value.trim();
+      if (q.manualScoring) {
+        const punten = parseInt(prompt(`Hoeveel punten verdien je voor dit antwoord? (0-${Math.min(score+5,10)})`));
+        if (!isNaN(punten)) score += punten;
+      } else if (q.answer && q.answer.includes(antwoord)) {
+        score += q.points || 1;
+      }
       currentQuestion++;
       showQuestion();
     };
     div.appendChild(btn);
-  } else if (q.type === "final") {
+  }
+
+  // === FINALE ===
+  else if (q.type === "final") {
     div.innerHTML += `<p>Je hebt nu ${score} punten. Hoeveel wil je inzetten?</p>`;
-    const input = document.createElement('input');
-    input.type = "number";
-    input.min = 0;
-    input.max = score;
-    div.appendChild(input);
+    const inzetInput = document.createElement('input');
+    inzetInput.type = "number";
+    inzetInput.min = 0;
+    inzetInput.max = score;
+    inzetInput.value = 0;
+    div.appendChild(inzetInput);
+
+    const antwoordInput = document.createElement('input');
+    antwoordInput.type = "text";
+    antwoordInput.placeholder = "Typ je antwoord...";
+    div.appendChild(antwoordInput);
+
     const btn = document.createElement('button');
-    btn.textContent = "Controleer inzet";
+    btn.textContent = "Controleer antwoord";
     btn.onclick = () => {
-      const inzet = parseInt(input.value);
-      const correct = confirm("Was het antwoord correct? OK = Ja, Annuleer = Nee");
-      if (correct) score += inzet*2;
-      else score -= inzet;
+      const inzet = Math.min(parseInt(inzetInput.value), score);
+      const antwoord = antwoordInput.value.trim().toLowerCase();
+      if (isNaN(inzet) || inzet < 0) return alert("Vul een geldig inzetbedrag in!");
+      if (antwoord === q.answer.toLowerCase()) {
+        alert("Goed gedaan! Je wint dubbel je inzet!");
+        score += inzet * 2;
+      } else {
+        alert(`Fout! Je verliest je inzet van ${inzet} punten.`);
+        score -= inzet;
+      }
       currentQuestion++;
       showQuestion();
     };
@@ -135,11 +198,11 @@ function showQuestion() {
   }
 
   container.appendChild(div);
+  updateScore();
 }
 
 // ==== START DE QUIZ ====
 showQuestion();
-
 </script>
 
 </body>
