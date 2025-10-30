@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verjaardagsquiz</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #fdf6e3; color: #333; padding: 20px; }
+  h1 { text-align: center; }
+  .question { margin-bottom: 20px; }
+  button { margin-top: 10px; padding: 8px 16px; cursor: pointer; }
+  input[type="text"] { width: 100%; padding: 6px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h1>Verjaardagsquiz!</h1>
+<div id="quiz-container"></div>
+<div id="final-score" class="hidden">
+  <h2>Je score: <span id="score">0</span></h2>
+</div>
+
+<script>
+// ==== JE VRAGEN HIER TOEVOEGEN ====
+const questions = [
+  {
+    type: "multiple", 
+    question: "Wat is mijn lievelingskleur?", 
+    options: ["Rood", "Blauw", "Groen", "Geel"],
+    answer: "Blauw"
+  },
+  {
+    type: "ordering", 
+    question: "Zet deze getallen in oplopende volgorde:", 
+    options: ["3", "1", "2"],
+    answer: ["1", "2", "3"]
+  },
+  {
+    type: "open", 
+    question: "Noem een van mijn favoriete hobby's",
+    pointsManual: true // Jij kent de punten toe
+  },
+  {
+    type: "final",
+    question: "Finale: hoeveel punten wil je inzetten?"
+  }
+];
+
+// ==== SCORE BIJHOUDEN ====
+let currentQuestion = 0;
+let score = 0;
+
+// ==== FUNCTIE OM VRAGEN TE TONEN ====
+function showQuestion() {
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = "";
+  if (currentQuestion >= questions.length) {
+    document.getElementById('final-score').classList.remove('hidden');
+    document.getElementById('score').textContent = score;
+    return;
+  }
+
+  const q = questions[currentQuestion];
+  const div = document.createElement('div');
+  div.className = "question";
+  div.innerHTML = `<h3>${q.question}</h3>`;
+
+  if (q.type === "multiple") {
+    q.options.forEach(option => {
+      const btn = document.createElement('button');
+      btn.textContent = option;
+      btn.onclick = () => {
+        if (option === q.answer) score += q.options.length; // punten = aantal opties
+        currentQuestion++;
+        showQuestion();
+      };
+      div.appendChild(btn);
+    });
+  } else if (q.type === "ordering") {
+    div.innerHTML += `<p>Voer de juiste volgorde in, gescheiden door komma:</p>`;
+    const input = document.createElement('input');
+    input.type = "text";
+    div.appendChild(input);
+    const btn = document.createElement('button');
+    btn.textContent = "Controleer";
+    btn.onclick = () => {
+      const userOrder = input.value.split(",").map(x => x.trim());
+      // punten per correct paar
+      let pairsScore = 0;
+      for (let i = 0; i < userOrder.length; i++) {
+        for (let j = i+1; j < userOrder.length; j++) {
+          const correctOrder = q.answer.indexOf(userOrder[i]) < q.answer.indexOf(userOrder[j]);
+          if (correctOrder) pairsScore++;
+        }
+      }
+      score += pairsScore;
+      currentQuestion++;
+      showQuestion();
+    };
+    div.appendChild(btn);
+  } else if (q.type === "open") {
+    div.innerHTML += `<p>Typ je antwoord:</p>`;
+    const input = document.createElement('input');
+    input.type = "text";
+    div.appendChild(input);
+    const btn = document.createElement('button');
+    btn.textContent = "Verstuur";
+    btn.onclick = () => {
+      // Handmatige puntentoekenning
+      const punten = prompt("Hoeveel punten krijgt deze speler voor dit antwoord?");
+      score += parseInt(punten) || 0;
+      currentQuestion++;
+      showQuestion();
+    };
+    div.appendChild(btn);
+  } else if (q.type === "final") {
+    div.innerHTML += `<p>Je hebt nu ${score} punten. Hoeveel wil je inzetten?</p>`;
+    const input = document.createElement('input');
+    input.type = "number";
+    input.min = 0;
+    input.max = score;
+    div.appendChild(input);
+    const btn = document.createElement('button');
+    btn.textContent = "Controleer inzet";
+    btn.onclick = () => {
+      const inzet = parseInt(input.value);
+      const correct = confirm("Was het antwoord correct? OK = Ja, Annuleer = Nee");
+      if (correct) score += inzet*2;
+      else score -= inzet;
+      currentQuestion++;
+      showQuestion();
+    };
+    div.appendChild(btn);
+  }
+
+  container.appendChild(div);
+}
+
+// ==== START DE QUIZ ====
+showQuestion();
+
+</script>
+
+</body>
+</html>
