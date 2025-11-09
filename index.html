@@ -288,9 +288,9 @@ function showQuestion() {
     btn.textContent = "Controleer antwoord";
     btn.onclick = () => {
       const inzet = Math.min(parseInt(inzetInput.value), score);
-      const antwoord = antwoordInput.value.trim().toLowerCase();
+      const antwoord = antwoordInput.value.trim();
       if (isNaN(inzet) || inzet < 0 || inzet > score) return alert("Vul een geldig inzetbedrag in!");
-      if (antwoord === string(q.answer)) {
+      if (antwoord === String(q.answer)) {
         alert("Goed gedaan! Je wint dubbel je inzet!");
         score += inzet;
       } else {
