@@ -290,7 +290,7 @@ function showQuestion() {
       const inzet = Math.min(parseInt(inzetInput.value), score);
       const antwoord = antwoordInput.value.trim().toLowerCase();
       if (isNaN(inzet) || inzet < 0 || inzet > score) return alert("Vul een geldig inzetbedrag in!");
-      if (antwoord === q.answer.toLowerCase()) {
+      if (antwoord === q.answer) {
         alert("Goed gedaan! Je wint dubbel je inzet!");
         score += inzet;
       } else {
