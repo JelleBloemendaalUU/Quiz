@@ -63,7 +63,8 @@ const questions = [
   {
     type: "open", 
     question: "Hoeveel unieke flesjes bevat mijn drankminiaturenverzameling?", 
-    manualScoring: true
+    answer: 155,
+    strict10: true
   },
   {
     type: "multiple", 
@@ -96,15 +97,9 @@ const questions = [
     answer: "b"
   },
   {
-    type: "multiple", 
-    question: "Welke Youtube video heb ik niet gezien?", 
-    options: ["a", "b", "c", "d", "e"],
-    answer: "d"
-  },
-  {
     type: "open", 
     question: "In hoeveel boulderhallen ben ik geweest?",
-    manualScoring: true // speler vult zelf punten in
+    answer: 7
   },
   {
     type: "multiple", 
@@ -143,15 +138,21 @@ const questions = [
     answer: "c"
   },
   {
-    type: "multiple", 
+    type: "multi", 
     question: "Wat heb ik niet op werk gedaan?", 
     options: ["a", "b", "c", "d", "e", "f"],
-    answer: "d"
+    answer: [3, 5]
+  },
+  {
+    type: "multi", 
+    question: "Welke spel speelde ik vroeger niet met mijn opa?", 
+    options: ["a", "b", "c", "d", "e"],
+    answer: "b"
   },
   {
     type: "open", 
     question: "Hoeveel SIB activiteiten heb ik bijgewoond?",
-    manualScoring: true // speler vult zelf punten in
+    answer: 15
   },
   {
     type: "multiple", 
@@ -251,24 +252,91 @@ function showQuestion() {
   else if (q.type === "open") {
     div.innerHTML += `<p>Typ je antwoord:</p>`;
     const input = document.createElement('input');
-    input.type = "text";
+    input.type = "number";
     div.appendChild(input);
+  
     const btn = document.createElement('button');
     btn.textContent = "Verstuur";
     btn.onclick = () => {
-      const antwoord = input.value.trim();
-      if (q.manualScoring) {
-        const punten = parseInt(prompt(`Hoeveel punten verdien je voor dit antwoord? (0-${Math.min(score+5,10)})`));
-        if (!isNaN(punten)) score += punten;
-      } else if (q.answer && q.answer.includes(antwoord)) {
-        score += q.points || 1;
+      const userAnswer = parseFloat(input.value);
+      if (isNaN(userAnswer)) {
+        alert("Voer een geldig getal in!");
+        return;
       }
+  
+      // Automatische puntentoekenning
+      let punten = 0;
+      const verschil = Math.abs(userAnswer - q.answer);
+  
+      // Speciale regel: sommige vragen geven 10 of 5 punten
+      if (q.strict10) {
+        // → 10 punten bij exact goed, 5 als binnen 10
+        if (verschil === 0) punten = 10;
+        else if (verschil <= 10) punten = 5;
+      } else {
+        // → 5 punten bij exact goed
+        if (verschil === 0) punten = 5;
+      }
+  
+      if (punten > 0) {
+        alert(`Goed gedaan! Je krijgt ${punten} punten.`);
+        score += punten;
+      } else {
+        alert("Helaas, fout antwoord.");
+      }
+  
       currentQuestion++;
       showQuestion();
     };
+  
     div.appendChild(btn);
   }
 
+  // === MULTI (meerdere antwoorden mogelijk) ===
+  else if (q.type === "multi") {
+    const form = document.createElement("form");
+  
+    q.options.forEach((opt, i) => {
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = i;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(opt));
+      form.appendChild(label);
+      form.appendChild(document.createElement("br"));
+    });
+  
+    div.appendChild(form);
+  
+    const btn = document.createElement("button");
+    btn.textContent = "Controleer antwoord";
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const selected = [...form.querySelectorAll("input:checked")].map(
+        (cb) => parseInt(cb.value)
+      );
+  
+      // Puntentelling:
+      // +1 voor elk goed geselecteerd antwoord
+      // +1 voor elk fout antwoord dat NIET geselecteerd is
+      let points = 0;
+      q.options.forEach((opt, idx) => {
+        const isCorrect = q.correct.includes(idx);
+        const isSelected = selected.includes(idx);
+        if ((isCorrect && isSelected) || (!isCorrect && !isSelected)) {
+          points++;
+        }
+      });
+  
+      alert(`Je hebt ${points} punten verdiend!`);
+      score += points;
+      currentQuestion++;
+      showQuestion();
+    };
+  
+    div.appendChild(btn);
+  }
   // === FINALE ===
   else if (q.type === "final") {
     div.innerHTML += `<p>Je hebt nu ${score} punten. Hoeveel wil je inzetten?</p>`;
